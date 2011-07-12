@@ -101,6 +101,13 @@
 (test (w/response (inst 'response)
         (let o (outstring)
           (= appdir* "t/data")
+          (respond-file o 'foo.css 'get)
+          (inside o)))
+          "HTTP/1.1 200 OK\r\nContent-Length: 8\r\nContent-Type: text/css; charset=utf-8\r\nConnection: close\r\n\r\nfoo.css\n")
+
+(test (w/response (inst 'response)
+        (let o (outstring)
+          (= appdir* "t/data")
           (respond-file o 'foo.txt 'head)
           (inside o)))
           "HTTP/1.1 200 OK\r\nContent-Length: 8\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n")
