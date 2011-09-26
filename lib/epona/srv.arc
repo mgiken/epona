@@ -1,5 +1,8 @@
 ; TODO: test
 
+(require "re.arc")
+
+(require "epona/api.arc")
 (require "epona/conf.arc")
 (require "epona/req.arc")
 (require "epona/res.arc")
@@ -10,9 +13,11 @@
   (w/response (inst 'response)
   ; TODO
 ;  (w/db conf*!db
-    (or (respond-file o request!op request!meth)
-        (respond-page o (dispatch))
-        (respond-err o)))));)
+    (aif (re-match "^/api/(.+)$" (string request!op))
+         (dispatch-api o car.it request!meth)
+         (or (respond-file o request!op request!meth)
+             (respond-page o (dispatch))
+             (respond-err o))))));)
 
 (def handle-request (s)
   (let (i o ip) (socket-accept s)
