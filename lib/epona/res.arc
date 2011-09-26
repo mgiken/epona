@@ -23,9 +23,9 @@
   (push (list key (multisubst '(("\r" "") ("\n" "")) string.val))
         response!heads))
 
-(def prcooks (cook)
-  ; TODO: implement
-  )
+(def prcooks (cooks)
+  (each v cooks 
+    (prrn "Set-Cookie: " v)))
 
 (def respond-head ()
   (prrn (httpsta response!code))

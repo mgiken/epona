@@ -1,6 +1,7 @@
 (require "date.arc")
 (require "epona/assets.arc")
 (require "epona/html.arc")
+(require "epona/req.arc")
 
 (deftag html5shim
   `(do (pr "<!--[if lt IE 9]>")
@@ -79,3 +80,9 @@
                       (<a href ,url
                         (<span ,label))))
                  children))))
+
+; TODO: test
+(deftag message
+  `(awhen request!msg
+    (<p it)))
+

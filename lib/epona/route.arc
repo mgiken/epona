@@ -14,13 +14,22 @@
       (= name (string "^" name "$")) ;TODO: test
       (push name route-idx*))
     `(= (route-map* ',name)
-        (fn ()
-          (withs (,gs nil
-                  ,gr nil
-                  ,ge (point _httperr
-                        (= ,gr (point _redirect
-                                 (= ,gs (tostring ,@body))))))
-            (list ,gs ,gr ,ge))))))
+        (route-fn ,@body))))
+
+(mac route-fn args
+  (w/uniq (gg gs gr ge)
+    `(fn ()
+       (withs (,gg nil
+               ,gs nil
+               ,gr nil
+               ,ge (point _httperr
+                     (= ,gr (point _redirect
+                              (= ,gg (point _go
+                                       (= ,gs (tostring ,@args))
+                                       nil))))))
+         (aif ,gg
+              it
+              (list ,gs ,gr ,ge))))))
 
 ; TODO: cache & test
 (def find-op (op)
@@ -41,13 +50,16 @@
 ; TODO
 ; HEAD, GET, POSTのみ処理する?
 (def dispatch ()
-  (if (is req!meth 'post)
+  (if (is request!meth 'post)
       (awhen (fns*:sym:arg 'fnid)
         ; TODO: httperr, redirect
-        (list (tostring:it) nil nil))
-      (awhen (find-op req!op)
-        (= req!pargs cdr.it)
+        (it));list (tostring:it) nil nil))
+      (awhen (find-op request!op)
+        (= request!pargs cdr.it)
         (car.it))))
+
+(mac go (path)
+  `(_go ((route-map* ',path))))
 
 (mac redirect args
   `(_redirect '(,@args)))
@@ -109,9 +121,11 @@
 
 ; FIXME
 (mac aform (f . body)
-  (w/uniq ga
+;  (w/uniq ga
+  (w/uniq (gs gr ge go)
     `(<form method "post"; action fnurl*)
-       (fnid-field (fnid (fn () (,f))))
+       ;(fnid-field (fnid (fn () (,f))))
+       (fnid-field (fnid (route-fn ,f)))
        ,@body)))
 
 ;(mac aform (f . body)
