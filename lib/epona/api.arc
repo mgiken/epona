@@ -20,6 +20,7 @@
 (def dispatch-api (o op meth)
   (aif api-map*.op.meth
        (w/stdout o
+         (sethead 'Content-Type "application/json; charset=utf-8")
          (respond-head)
          (writejson (it)))))
 

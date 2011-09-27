@@ -13,8 +13,8 @@
   (w/response (inst 'response)
   ; TODO
 ;  (w/db conf*!db
-    (aif (re-match "^/api/(.+)$" (string request!op))
-         (dispatch-api o car.it request!meth)
+    (aif (re-match "^/api(/.+)$" (string request!op))
+         (dispatch-api o (sym:car it) request!meth)
          (or (respond-file o request!op request!meth)
              (respond-page o (dispatch))
              (respond-err o))))));)
