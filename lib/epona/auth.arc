@@ -28,32 +28,32 @@
   (let (algo salt hashed) (tokens pw1 #\$)
     (is hashed (pwdgst pw0 salt algo))))
 
-(def logout ()
-  (awhen (get-doc cook!_a)
-    (del-doc it)))
-
-(def login (id pw)
-  (logout)
-  ; TODO
-  (let auth (find-doc1 "auth" "all" (obj key (string "\"" id "\"")))
-    (aand auth
-          (pwcmp arg!pw auth!password)
-          (save-doc (inst 'session 'data (obj auth_id auth!_id)))
-          (push (string "_a=" it!id)  response!cooks))))
-
-(deftag login-form
-  `(aform
-     (if (login arg!id arg!pw)
-         (redirect ,attr!afterward)
-         (do (= request!msg ,(attr 'msg "ログインに失敗しました"))
-             (go /login)))
-     (<fieldset
-       (<message)
-       (<label for "id" "Email Address")
-       (<input type "text" name "id")
-       (<label for "pw" "Password")
-       (<input type "password" name "pw")
-       (<input type "submit" value "Submit" name "submit"))))
+;(def logout ()
+;  (awhen (get-doc cook!_a)
+;    (del-doc it)))
+;
+;(def login (id pw)
+;  (logout)
+;  ; TODO
+;  (let auth (find-doc1 "auth" "all" (obj key (string "\"" id "\"")))
+;    (aand auth
+;          (pwcmp arg!pw auth!password)
+;          (save-doc (inst 'session 'data (obj auth_id auth!_id)))
+;          (push (string "_a=" it!id)  response!cooks))))
+;
+;(deftag login-form
+;  `(aform
+;     (if (login arg!id arg!pw)
+;         (redirect ,attr!afterward)
+;         (do (= request!msg ,(attr 'msg "ログインに失敗しました"))
+;             (go /login)))
+;     (<fieldset
+;       (<message)
+;       (<label for "id" "Email Address")
+;       (<input type "text" name "id")
+;       (<label for "pw" "Password")
+;       (<input type "password" name "pw")
+;       (<input type "submit" value "Submit" name "submit"))))
 
 ; TODO
 ;(defp /login

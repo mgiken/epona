@@ -53,6 +53,7 @@
   (if (is request!meth 'post)
       (awhen (fns*:sym:arg 'fnid)
         ; TODO: httperr, redirect
+        (wipe (fns*:sym:arg 'fnid))
         (it));list (tostring:it) nil nil))
       (awhen (find-op request!op)
         (= request!pargs cdr.it)
@@ -61,8 +62,8 @@
 (mac go (path)
   `(_go ((route-map* ',path))))
 
-(mac redirect args
-  `(_redirect '(,@args)))
+(mac redirect (args)
+  `(_redirect (list ,args)))
 
 (mac httperr args
   (if args

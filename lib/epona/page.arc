@@ -32,7 +32,7 @@
            ,@(map (fn (x) `(<link ,@x)) attr!link)
            (<inc-js ,@attr!js)
            (<html5shim))
-         (<body ,@children nil))))
+         (<body ,@(awhen attr!id (list 'id it)) ,@children nil))))
 
 ; ----------------------------------------------------------------------------
 
@@ -63,11 +63,11 @@
 
 (deftag copyright
   (if (and attr!url attr!owner)
-      `(<div id "copyright"
+      `(<span class "copyright"
          (raw "&copy; ")
          (datestring (seconds) "~Y ")
          (<a href ,attr!url ,attr!owner))
-      `(<div id "copyright"
+      `(<span class "copyright"
          (raw "&copy; ")
          (datestring (seconds) "~Y ")
          ,attr!owner)))

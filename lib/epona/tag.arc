@@ -28,7 +28,8 @@
        (pr:case markup
          html  ">"
          xml   "/>"
-         xhtml " />")))
+         xhtml " />")
+       nil))
 
 ; TODO
 (def tag-body (body)
@@ -50,7 +51,8 @@
   (if body
       `(do ,(start-tag name attrs)
            ,@(tag-body body)
-           ,(end-tag name))
+           ,(end-tag name)
+           nil)
       `(do ,(empty-tag name attrs))))
 
 (def parse-attrs (x)
