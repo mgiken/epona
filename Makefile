@@ -11,7 +11,7 @@ install:
 	cp ./bin/eponad $(bindir)/eponad
 	mkdir -p $(libdir)
 	cp ./lib/epona.arc $(libdir)/epona.arc
-	cp -r ./lib/epona $(libdir)/epona
+	cp -r ./lib/epona $(libdir)/
 
 uninstall:
 	rm -rf $(bindir)/eponad
