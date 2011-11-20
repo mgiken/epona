@@ -22,7 +22,7 @@
 
 (deftag page
   `(do (doctype)
-       (<html
+       (<html lang ,(attr 'lang "jp")
          (<head
            (<meta charset "utf-8")
            (<title ,(attr 'title "Untitled Page"))
