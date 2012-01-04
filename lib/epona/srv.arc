@@ -11,13 +11,11 @@
 (def handle-request-thread (i o ip)
   (w/request  (readreq i ip)
   (w/response (inst 'response)
-  ; TODO
-;  (w/db conf*!db
     (aif (re-match "^/api(/.+)$" (string request!op))
          (dispatch-api o (sym:car it) request!meth)
          (or (respond-file o request!op request!meth)
              (respond-page o (dispatch))
-             (respond-err o))))));)
+             (respond-err o))))))
 
 (def handle-request (s)
   (let (i o ip) (socket-accept s)
@@ -27,7 +25,7 @@
                       (close i o)
                       (kill-thread th2))))
       (= th2 (thread
-               (sleep conf*!srv-timeout)
+               (sleep srv-timeout*)
                (unless (dead th1)
                  (prn "srv thread took too long for " ip))
                ; TODO: write log
@@ -35,13 +33,8 @@
                (force-close i o))))))
 
 (def serve ()
-  (w/socket s conf*!srv-port
-    (prn "ready to serve port " conf*!srv-port)
-    (when conf*!debug
-      (prn:newstring 78 #\-)
-      (prn "sysdir: " sysdir*)
-      (prn "appdir: " appdir*)
-      (maptable (fn (k v) (prn k ": " v)) conf*))
+  (w/socket s srv-port*
+    (prn "ready to serve port " srv-port*)
     (flushout)
     (= currsock* s)
     (while t

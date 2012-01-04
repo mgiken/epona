@@ -1,7 +1,6 @@
 #!/usr/bin/env arc
 
 (require "files.arc")
-;(require "couch.arc")
 (require "epona.arc")
 
 ; TODO: CLI params
@@ -10,30 +9,7 @@
                      (qualified-path "."))
                  'end [is _ #\/]))
 
-(load-conf:+ appdir* "/app.conf")
-
-(map ensure-dir (list conf*!logdir))
-
 (push-loadpath appdir*)
-
-; TODO
-;(= db (couchdb conf*!db-name conf*!db-host conf*!db-port))
-;(defdoc auth
-;    (user     nil
-;     password nil
-;     role     nil)
-;  (all user))
-;(defdoc session
-;  (data nil)
-;  (all updated_at))
-
-
-; TODO
-;(when conf*!db-name
-;  (w/db (couchdb conf*!db-name conf*!db-host conf*!db-port)
-;    (load "app.arc")
-;    (serve)))
-
 (load "app.arc")
 (serve)
 
