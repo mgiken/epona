@@ -1,12 +1,13 @@
+; HTTP Status Code.
+
 ; RFC 2616
 ; HTTP/1.1: Status Code Definitions
 ; http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10
-
-(= httpsta* (obj
-; Informational 1xx
+(= http-sta* (obj
+  ; Informational 1xx
   100 "Continue"
   101 "Switching Protocols"
-; Successful 2xx
+  ; Successful 2xx
   200 "OK"
   201 "Created"
   202 "Accepted"
@@ -14,16 +15,15 @@
   204 "No Content"
   205 "Reset Content"
   206 "Partial Content"
-; Redirection 3xx
+  ; Redirection 3xx
   300 "Multiple Choices"
   301 "Moved Permanently"
   302 "Found"
   303 "See Other"
   304 "Not Modified"
   305 "Use Proxy"
-; 306 (Unused)
   307 "Temporary Redirect"
-; Client Error 4xx
+  ; Client Error 4xx
   400 "Bad Request"
   401 "Unauthorized"
   402 "Payment Required"
@@ -42,16 +42,16 @@
   415 "Unsupported Media Type"
   416 "Requested Range Not Satisfiable"
   417 "Expectation Failed"
-; Server Error 5xx
+  ; Server Error 5xx
   500 "Internal Server Error"
   501 "Not Implemented"
   502 "Bad Gateway"
   503 "Service Unavailable"
   504 "Gateway Timeout"
-  505 "HTTP Version Not Supported"
-  ))
+  505 "HTTP Version Not Supported"))
 
-(def httpsta (code)
-  (aif httpsta*.code
-       (string "HTTP/1.1 " code " " it)
-       (string "HTTP/1.1 " code " Unknown Status Code")))
+(def http-sta (sta)
+  (string sta " " (http-sta* sta "Unknown Status Code")))
+
+(def http-sta-line (sta (o prot "HTTP/1.1"))
+  (string prot " " http-sta.sta))

@@ -1,1 +1,1 @@
-(map [require:+ "epona/" _] (dir:+ arclib* "/site/epona"))
+(map [when (endmatch ".arc" _) (require:+ "epona/" _)] (dir:+ arclib* "/site/epona"))

@@ -1,149 +1,91 @@
-; TODO: test
+; Routing Util.
 
+(require "json.arc")
 (require "re.arc")
-(require "epona/html.arc")
-(require "epona/req.arc")
+(require "humble.arc")
+(require "epona/ctx.arc")
 
-(= route-map* (table) route-idx* nil)
-(= fns* (table) fnids* nil timed-fnids* nil)
+(= route-fns* (obj get (table) post (table) put (table) delete (table))
+   route-idx* (obj get nil     post nil     put nil     delete nil))
 
-; TODO: test
-(mac defp (name . body)
-  (w/uniq (gs gr ge)
-    (when (isa name 'string)
-      (= name (string "^" name "$")) ;TODO: test
-      (push name route-idx*))
-    `(= (route-map* ',name)
-        (route-fn ,@body))))
+(mac render (ext . body)
+  (let x (case ext
+           html 'tostring:render-html
+           atom 'tostring:render-atom
+           json 'tojson
+                'string)
+    `(,x ,@body)))
 
-(mac route-fn args
-  (w/uniq (gg gs gr ge)
-    `(fn ()
-       (withs (,gg nil
-               ,gs nil
-               ,gr nil
-               ,ge (point _httperr
-                     (= ,gr (point _redirect
-                              (= ,gg (point _go
-                                       (= ,gs (tostring ,@args))
-                                       nil))))))
-         (aif ,gg
-              it
-              (list ,gs ,gr ,ge))))))
+(mac route-fn (args ext . body)
+  `(fn (,@args)
+     (point httperr_
+       (point redirect_
+         (point go_
+           (sethd "Content-Type" ,mime-type.ext)
+           (= ctx!o (render ,ext ,@body)))))))
 
-; TODO: cache & test
-(def find-op (op)
-  (aif route-map*.op
-       (list it)
-       ((afn (lst)
-          (aif no.lst
-               nil
-               (re-match-pat car.lst string.op)
-               (cons (route-map* car.lst) cdr.it)
-               (self cdr.lst))) route-idx*)))
+(mac defop ((meth name (o ext 'html)) args . body)
+  (when (isa name 'string)
+    (= name (string "^" name "$"))
+    (push name route-idx*.meth))
+  `(= ((route-fns* ',meth) ',name) (route-fn ,args ,ext ,@body)))
 
-;(def dispatch ()
-;  (awhen (find-op req!op)
-;    (= req!pargs cdr.it)
-;    (car.it)))
+(mac defp (name args . body)
+  `(defop (get ,name) ,args ,@body))
 
-; TODO
-; HEAD, GET, POSTのみ処理する?
-(def dispatch ()
-  (if (is request!meth 'post)
-      (awhen (fns*:sym:arg 'fnid)
-        ; TODO: httperr, redirect
-        (wipe (fns*:sym:arg 'fnid))
-        (it));list (tostring:it) nil nil))
-      (awhen (find-op request!op)
-        (= request!pargs cdr.it)
-        (car.it))))
+(mac deffeed (name args . body)
+  `(defop (get ,name atom) ,args ,@body))
 
-(mac go (path)
-  `(_go ((route-map* ',path))))
+(mac go (op (o msg))
+  `(go_ (do (= ctx!meth 'get
+               ctx!op   (sym ,op))
+            (respond-page))))
 
-(mac redirect (args)
-  `(_redirect (list ,args)))
+(mac redirect (loc (o sta 301))
+  `(redirect_ (= ctx!o   nil
+                 ctx!hds (list (list "Location" ,loc))
+                 ctx!sta ,sta)))
 
-(mac httperr args
-  (if args
-      `(_httperr '(,@args))
-      `(_httperr '(404))))
+(mac fond     (loc) `(redirect ,loc 302))
+(mac seeother (loc) `(redirect ,loc 303))
 
-; ----------------------------------------------------------------------------
-; XXX:
-; TODO: test
+(mac httperr ((o sta 404))
+  `(httperr_ (= ctx!o ,http-sta.sta
+                ctx!hds (list (list "Content-Type" ,mime-type!html))
+                ctx!sta ,sta)))
+
+(mac badreq   () `(httperr 400))
+(mac notfound () `(httperr 404))
+(mac srverr   () `(httperr 500))
+
+(= fns* (table) fnids* nil)
 
 (def new-fnid ()
-  (check (sym:rand-string 20) ~fns* (new-fnid)))
+  (check (sym:rand-string 32) ~fns* (new-fnid)))
 
-(def fnid (f)
-  (atlet key (new-fnid)
-    (= (fns* key) f)
-    (push key fnids*)
-    key))
+(def fnid (f (o lasts (+ (seconds) 259200)))  ; 3 day
+  (atlet k (new-fnid)
+    (= fns*.k f)
+    (push (list k (seconds) lasts) fnids*)
+    string.k))
 
-(def timed-fnid (lasts f)
-  (atlet key (new-fnid)
-    (= fns*.key f)
-    (push (list key (seconds) lasts) timed-fnids*)
-    key))
+(def harvest-fnids ()
+  (pull (fn ((id created lasts))
+          (when (> (since created) lasts)
+            (wipe (fns* id))
+            t))
+        fnids*))
 
-(mac afnid (f)
-  `(atlet it (new-fnid)
-     (= fns*.it ,f)
-     (push it fnids*)
-     it))
-
-(def harvest-fnids ((o n 50000))  ; was 20000
-  (when (len> fns* n)
-    (pull (fn ((id created lasts))
-            (when (> (since created) lasts)
-              (wipe (fns* id))
-              t))
-          timed-fnids*)
-    (atlet nharvest (trunc (/ n 10))
-      (let (kill keep) (split (rev fnids*) nharvest)
-        (= fnids* (rev keep))
-        (each id kill
-          (wipe (fns* id)))))))
-
-(def fnid-field (id)
-  (<input type "hidden" name "fnid" value id) nil)
-
-;;;;;;;; f should be a fn of one arg, which will be http request args.
-;;;;; (def fnform (f bodyfn (o redir))
-;;;;;   (tag (form method 'post action (if redir rfnurl2* fnurl*))
-;;;;;     (fnid-field fnid.f)
-;;;;;     (bodyfn)))
-
-;; Could also make a version that uses just an expr, and var capture.
-;; Is there a way to ensure user doesn't use "fnid" as a key?
-
-; FIXME
-(mac aform (f . body)
-;  (w/uniq ga
-  (w/uniq (gs gr ge go)
-    `(<form method "post"; action fnurl*)
-       ;(fnid-field (fnid (fn () (,f))))
-       (fnid-field (fnid (route-fn ,f)))
-       ,@body)))
-
-;(mac aform (f . body)
-;  (w/uniq ga
-;    `(<form method "post"; action fnurl*)
-;       (fnid-field (fnid (fn (,ga)
-;                           (prn)
-;                           (,f ,ga))))
-;       ,@body)))
-
-; ----------------------------------------------------------------------------
-
-;(defp /fn
-;  (let xxx "hoge"
-;  (aform (fn () (prn xxx) (prn req!args))
-;    xxx
-;    "name:" (<input type "text" name "name" value "")
-;    (<br)
-;    (<input type "submit" value "test")
-;  )))
+; TODO
+(defmemo find-op (meth op)
+  (aif (aand (is meth 'post) (fns* (sym arg!fnid)))
+       it
+       route-fns*.meth.op
+       it
+       ((afn (s x)
+          (aif no.x
+               nil
+               (re-match-pat car.x s)
+               (fn ()
+                 (apply (route-fns*.meth car.x) cdr.it))
+               (self s cdr.x))) string.op route-idx*.meth)))

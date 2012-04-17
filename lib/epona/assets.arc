@@ -1,12 +1,14 @@
+; Assets File Util.
+
 (require "files.arc")
 (require "re.arc")
 
-(require "epona/conf.arc")
+(unless (bound 'appdir*)
+  (= appdir* "."))
 
 (def file-exists-in-pubdir (file)
-  (awhen (re-replace "\\.v\\d*\\." string.file ".")
-    (or (file-exists (qualified-path:string appdir* "/pub/" it))
-        (file-exists (qualified-path:string sysdir* "/pub/" it)))))
+  (aand (re-replace "\\.v\\d*\\." string.file ".")
+        (file-exists:+ appdir* "/pub/" it)))
 
 (def assets (file)
   (aif (file-exists-in-pubdir file)

@@ -1,0 +1,16 @@
+#!/usr/bin/env arc
+
+(require "files.arc")
+(require "epona.arc")
+
+; TODO: CLI params
+(= appdir* (trim (if (is len.args* 2)
+                     (qualified-path args*.1)
+                     (qualified-path "."))
+                 'end [is _ #\/]))
+
+(push-loadpath appdir*)
+(load "app.arc")
+(serve)
+
+; vim: ft=arc

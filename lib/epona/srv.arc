@@ -1,41 +1,53 @@
-; TODO: test
+; HTTP Server.
 
-(require "re.arc")
-
-(require "epona/api.arc")
-(require "epona/conf.arc")
-(require "epona/req.arc")
-(require "epona/res.arc")
 (require "epona/route.arc")
 
-(def handle-request-thread (i o ip)
-  (w/request  (readreq i ip)
-  (w/response (inst 'response)
-    (aif (re-match "^/api(/.+)$" (string request!op))
-         (dispatch-api o (sym:car it) request!meth)
-         (or (respond-file o request!op request!meth)
-             (respond-page o (dispatch))
-             (respond-err o))))))
+(mac prrn args
+  `(pr ,@args #\return #\newline))
+
+(def respond ()
+  (prrn:http-sta-line ctx!sta)
+  (each (k v) (rev ctx!hds)
+    (prrn k ": " v))
+  (prrn)
+  (awhen ctx!o
+    (unless (is ctx!meth 'head)
+      (case type.it
+        input (whilet b (readb it) (writeb b))
+              (pr it)))
+    (when (isa it 'input)
+      (close it))))
+
+(def respond-file ()
+  (awhen (file-exists-in-pubdir ctx!op)
+    (sethd "Content-Type"   mime-type.it)
+    (sethd "Content-Length" file-size.it)
+    (= ctx!o infile.it)))
+
+(def respond-page ()
+  (awhen (find-op ctx!meth ctx!op)
+    (it)))
+
+(def respond-err ((o sta 404))
+  (sethd "Content-Type" mime-type!html)
+  (= ctx!sta sta ctx!o http-sta.sta))
 
 (def handle-request (s)
   (let (i o ip) (socket-accept s)
-    (with (th1 nil th2 nil)
-      (= th1 (thread
-               (after (handle-request-thread i o ip)
-                      (close i o)
-                      (kill-thread th2))))
-      (= th2 (thread
-               (sleep srv-timeout*)
-               (unless (dead th1)
-                 (prn "srv thread took too long for " ip))
-               ; TODO: write log
-               (break-thread th1)
-               (force-close i o))))))
+    (thread
+      (after (w/ctx (mk-ctx i o ip)
+               (w/stdout o
+                 (or (respond-file)
+                     (respond-page)
+                     (respond-err))
+                 (respond)))
+             (close i o))
+      (harvest-fnids))))
 
-(def serve ()
-  (w/socket s srv-port*
-    (prn "ready to serve port " srv-port*)
+; TODO: timeout long thread
+(def serve ((o port (if (bound 'port*) port*  8080)))
+  (w/socket s port
+    (prn "ready to serve port " port)
     (flushout)
-    (= currsock* s)
     (while t
-      (errsafe (handle-request s)))))
+      (errsafe:handle-request s))))
