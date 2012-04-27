@@ -26,6 +26,12 @@
   (unless duplicate (pull [is car._ normalize-head-key.k] ctx!res!heads))
   (push (list normalize-head-key.k sanitize-head-value.v) ctx!res!heads))
 
+(def setbody (x)
+  (= ctx!res!body x))
+
+(def setsta (x)
+  (= ctx!res!sta x))
+
 (def cookexpires (sec)
   (if (< sec 0)
       "Thu, 01-Jan-1970 00:00:00 GMT"
