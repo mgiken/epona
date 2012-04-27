@@ -68,6 +68,7 @@ s.parentNode.insertBefore(ga,s);\
 })();</script>")
 
 ; page -----------------------------------------------------------------------
+; TODO: more test
 
 (test is (tostring:pr-node:page "foo")
          "<html lang=\"jp\">\
@@ -82,9 +83,6 @@ s.parentNode.insertBefore(ga,s);\
 </head>\
 <body>foo</body>\
 </html>")
-
-
-; TODO: more test
 
 ; deflayout ------------------------------------------------------------------
 
@@ -183,11 +181,6 @@ s.parentNode.insertBefore(ga,s);\
 (test is (tostring:pr-node:hidden-field "foo" "bar")
          "<input name=\"foo\" type=\"hidden\" value=\"bar\">")
 
-; fnid-field -----------------------------------------------------------------
-
-(test is (tostring:pr-node:fnid-field "foo")
-         "<input name=\"fnid\" type=\"hidden\" value=\"foo\">")
-
 ; abtn -----------------------------------------------------------------------
 
 (test is (tostring:pr-node:abtn "foo") "<a class=\"button\" title=\"foo\">foo</a>")
@@ -201,13 +194,6 @@ s.parentNode.insertBefore(ga,s);\
 (test is (tostring:pr-node:sbtn "foo" "bar" "baz")
          "<input class=\"button baz\" id=\"bar\" name=\"bar\" \
 title=\"foo\" type=\"submit\" value=\"foo\">")
-
-; notify ---------------------------------------------------------------------
-
-(test is (tostring:pr-node:notify "foo")
-         "<div class=\"notify\"><p>foo</p></div>")
-(test is (tostring:pr-node:notify "foo" "bar")
-         "<div class=\"notify bar\"><p>foo</p></div>")
 
 (done-testing)
 

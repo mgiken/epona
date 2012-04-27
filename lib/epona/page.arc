@@ -70,17 +70,9 @@
 (def hidden-field (name (o value ""))
   (<input 'type "hidden" 'name name 'value value))
 
-(def fnid-field (x)
-  (hidden-field "fnid" x))
-
 (def abtn (text (o id) (o class))
   (<a 'id id 'title text 'class (aif class (+ "button " it) "button") text))
 
 (def sbtn (text (o id) (o class))
   (<input 'type "submit" 'id id 'name id 'title text 'value text
           'class (aif class (+ "button " it) "button")))
-
-(def notify (msg (o type))
-  (when msg
-    (<div 'class (aif type (+ "notify " it) "notify")
-      (<p msg))))
