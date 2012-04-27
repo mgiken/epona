@@ -23,7 +23,7 @@
                (break-thread th1)
                (force-close i o))))))
 
-(def serve ((o port 8080))
+(def serve ((o port (if (bound 'port*) port*  8080)))
   (w/socket s port
     (while t
       (errsafe:accept-and-handle s))))
