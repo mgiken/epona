@@ -1,12 +1,10 @@
-; Routing Util.
+; Dispatch request.
 
 (require "json.arc")
 (require "re.arc")
-(require "humble.arc")
+(require "epona/asset.arc")
 (require "epona/ctx.arc")
-
-(= route-fns* (obj get (table) post (table) put (table) delete (table))
-   route-idx* (obj get nil     post nil     put nil     delete nil))
+(require "epona/page.arc")
 
 (mac render (ext . body)
   (let x (case ext
@@ -16,19 +14,24 @@
                 'string)
     `(,x ,@body)))
 
-(mac route-fn (args ext . body)
+(mac genroutefn (args ext . body)
   `(fn (,@args)
      (point httperr_
        (point redirect_
          (point go_
-           (sethd "Content-Type" ,mime-type.ext)
-           (= ctx!o (render ,ext ,@body)))))))
+           (sethead "Content-Type" ,mimetype.ext)
+           (setbody (render ,ext ,@body))
+           )))
+     'respond))
+
+(= dispatch-tbl* (obj get (table) post (table) put (table) delete (table))
+   dispatch-idx* (obj get nil     post nil     put nil     delete nil))
 
 (mac defop ((meth name (o ext 'html)) args . body)
   (when (isa name 'string)
     (= name (string "^" name "$"))
-    (push name route-idx*.meth))
-  `(= ((route-fns* ',meth) ',name) (route-fn ,args ,ext ,@body)))
+    (push name dispatch-idx*.meth))
+  `(= ((dispatch-tbl* ',meth) ',name) (genroutefn ,args ,ext ,@body)))
 
 (mac defp (name args . body)
   `(defop (get ,name) ,args ,@body))
@@ -36,56 +39,90 @@
 (mac deffeed (name args . body)
   `(defop (get ,name atom) ,args ,@body))
 
-(mac go (op (o msg))
-  `(go_ (do (= ctx!meth 'get
-               ctx!op   (sym ,op))
-            (respond-page))))
-
-(mac redirect (loc (o sta 301))
-  `(redirect_ (= ctx!o   nil
-                 ctx!hds (list (list "Location" ,loc))
-                 ctx!sta ,sta)))
-
-(mac fond     (loc) `(redirect ,loc 302))
-(mac seeother (loc) `(redirect ,loc 303))
-
-(mac httperr ((o sta 404))
-  `(httperr_ (= ctx!o ,http-sta.sta
-                ctx!hds (list (list "Content-Type" ,mime-type!html))
-                ctx!sta ,sta)))
-
-(mac badreq   () `(httperr 400))
-(mac notfound () `(httperr 404))
-(mac srverr   () `(httperr 500))
-
-(= fns* (table) fnids* nil)
+(= fn-tbl* (table)
+   fn-ids* nil)
 
 (def new-fnid ()
-  (check (sym:rand-string 32) ~fns* (new-fnid)))
+  (check (sym:rand-string 32) ~fn-tbl* (new-fnid)))
 
-(def fnid (f (o lasts (+ (seconds) 259200)))  ; 3 day
+(def fnid (f (o lasts (+ (seconds) 86400)))  ; 1 day
   (atlet k (new-fnid)
-    (= fns*.k f)
-    (push (list k (seconds) lasts) fnids*)
+    (= fn-tbl*.k f)
+    (push (list k (seconds) lasts) fn-ids*)
     string.k))
 
 (def harvest-fnids ()
   (pull (fn ((id created lasts))
           (when (> (since created) lasts)
-            (wipe (fns* id))
+            (wipe (fn-tbl* id))
             t))
-        fnids*))
+        fn-ids*))
 
-; TODO
 (defmemo find-op (meth op)
-  (aif (aand (is meth 'post) (fns* (sym arg!fnid)))
-       it
-       route-fns*.meth.op
+  (aif dispatch-tbl*.meth.op
        it
        ((afn (s x)
           (aif no.x
                nil
                (re-match-pat car.x s)
                (fn ()
-                 (apply (route-fns*.meth car.x) cdr.it))
-               (self s cdr.x))) string.op route-idx*.meth)))
+                 (apply (dispatch-tbl*.meth car.x) cdr.it))
+               (self s cdr.x))) string.op dispatch-idx*.meth)))
+
+(def find-fn (meth id)
+  (awhen (aand (is meth 'post) (fn-tbl* sym.id))
+    (wipe (fn-tbl* sym.id))
+    it))
+
+(def fnid-field (id)
+  (hidden-field "fnid" id))
+
+(mac aform (f . body)
+  `(<form 'method "post" 'action ctx!req!path
+     (fnid-field (fnid (genroutefn nil html ,f)))
+     ,@body))
+
+(def notify ()
+  (let (msg type) ctx!notify
+    (when msg
+      (<div 'class (aif type (+ "notify " it) "notify")
+      (<p msg)))))
+
+(def dispatch (ctx)
+  (w/ctx ctx
+    (aif (file-exists-in-pubdir ctx!req!op)
+         (do (sethead "Content-Type"   mimetype.it)
+             (sethead "Content-Length" file-size.it)
+             (setbody infile.it))
+         (find-fn ctx!req!meth arg!fnid)
+         (it)
+         (find-op ctx!req!meth ctx!req!op)
+         (it)
+         (do (sethead "Content-Type" mimetype!html)
+             (setsta 404)
+             (setbody (httpsta 404))))
+    (list ctx!req!meth ctx!res!sta ctx!res!heads ctx!res!body)))
+
+(mac go (op . args)
+  `(go_ (do (= ctx!req!meth 'get
+               ctx!req!op   (sym ,op)
+               ctx!notify   (list ,@args))
+            (dispatch ctx))))
+
+(mac redirect (loc (o sta 301))
+  `(redirect_ (do (setsta ,sta)
+                  (sethead "location" ,loc)
+                  (setbody nil)
+                  t)))
+
+(mac fond     (loc) `(redirect ,loc 302))
+(mac seeother (loc) `(redirect ,loc 303))
+
+(mac httperr ((o sta 404))
+  `(httperr_ (do (setsta ,sta)
+                 (setbody ,httpsta.sta)
+                 t)))
+
+(mac badreq   () `(httperr 400))
+(mac notfound () `(httperr 404))
+(mac srverr   () `(httperr 500))
