@@ -3,7 +3,7 @@
 ; RFC 2616
 ; HTTP/1.1: Status Code Definitions
 ; http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html#sec10
-(= http-sta* (obj
+(= httpsta* (obj
   ; Informational 1xx
   100 "Continue"
   101 "Switching Protocols"
@@ -50,8 +50,8 @@
   504 "Gateway Timeout"
   505 "HTTP Version Not Supported"))
 
-(def http-sta (sta)
-  (string sta " " (http-sta* sta "Unknown Status Code")))
+(def httpsta (sta)
+  (string sta " " (httpsta* sta "Unknown Status Code")))
 
-(def http-sta-line (sta (o prot "HTTP/1.1"))
-  (string prot " " http-sta.sta))
+(def httpsta-line (sta (o prot "HTTP/1.1"))
+  (string prot " " httpsta.sta))

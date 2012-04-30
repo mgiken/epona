@@ -1,87 +1,36 @@
 ; Context.
 
-(require "epona/assets.arc")
-(require "epona/sta.arc")
-(require "epona/mime.arc")
+(require "epona/req.arc")
+(require "epona/res.arc")
 
 (implicit ctx)
 
-(deftem ctx
-  env   nil
-  ip    nil
-  meth  nil
-  path  nil
-  qs    nil
-  op    nil
-  sta   200
-  hds   nil
-  o     nil)
+(deftem context
+  req nil
+  res nil)
 
-(def mk-env (i o)
-  (let e (obj i i o o)
-    (whiler l readline.i blank
-      (awhen (pos #\: l)
-        (= (e (subst "-" "_" (upcase:cut l 0 it))) (trim:cut l (+ it 1)))))
-    e))
+(def mkctx (i ip)
+  (inst 'context 'req (readreq i ip) 'res (inst 'response)))
 
-(def mk-ctx (i o ip)
-  (withs ((meth path prot) (tokens:readline i)
-          (base qs)        (tokens path #\?)
-          env              (mk-env i o))
-    (inst 'ctx 'env   env
-               'ip    (aif env!x-real-ip it ip)
-               'meth  (sym:downcase meth)
-               'path  path
-               ;'prot  prot
-               ;'base  base
-               'qs    qs
-               'op    sym.base)))
+(defs arg  (k (o d)) (or (alref ctx!req!args  string.k) d)
+      head (k (o d)) (or (alref ctx!req!heads string.k) d)
+      cook (k (o d)) (or (alref ctx!req!cooks string.k) d))
 
-(def hd (k (o d))
-  (ctx!env string.k d))
+(defmemo normalize-head-key (x)
+  (string:intersperse #\- (map capitalize (tokens string.x #\-))))
 
-(def parseargs (s)
-  (map [map urldecode (tokens _ #\=)] (tokens s #\&)))
+(defmemo sanitize-head-value (x)
+  (multisubst '(("\r" "") ("\n" "")) string.x))
 
-(def data ((o type))
-  (let s (set-if-nil
-           ctx!data
-           (aand hd!CONTENT-LENGTH
-                 (errsafe:int it)
-                 (string:map [coerce _ 'char] (readbs it ctx!env!i))))
-    (case type
-      args (and (is hd!CONTENT-TYPE "application/x-www-form-urlencoded")
-                (only.parseargs s))
-      json (and (is hd!CONTENT-TYPE "application/json")
-                (only.tojson s))
-           s)))
+(def sethead (k v (o duplicate))
+  (unless duplicate (pull [is car._ normalize-head-key.k] ctx!res!heads))
+  (push (list normalize-head-key.k sanitize-head-value.v) ctx!res!heads))
 
-(def args ()
-  (set-if-nil
-    ctx!args
-    (join (only.parseargs ctx!qs) (data 'args))))
+(def setbody (x)
+  (= ctx!res!body x))
 
-(def arg (k (o d))
-  (or (alref (args) string.k) d))
-
-(def cooks ()
-  (set-if-nil
-    ctx!cooks
-    (aand hd!COOKIE
-          (map [map urldecode (tokens trim._ #\=)] (tokens it #\;)))))
-
-(def cook (k (o d))
-  (or (alref (cooks) string.k) d))
-
-(defmemo normalize-hdk (k)
-  (string:intersperse #\- (map capitalize (tokens string.k #\-))))
-
-(defmemo sanitize-hdv (v)
-  (multisubst '(("\r" "") ("\n" "")) string.v))
-
-(def sethd (k v (o unique t))
-  (when unique (pull [is car._ normalize-hdk.k] ctx!hds))
-  (push (list normalize-hdk.k sanitize-hdv.v) ctx!hds))
+(def setsta (x)
+  (= ctx!res!sta x))
 
 (def cookexpires (sec)
   (if (< sec 0)
@@ -90,11 +39,11 @@
                   "~a, ~e-~b-~Y ~H:~M:~S GMT")))
 
 (def setcook (k v (o e) (o p) (o d) (o s) (o h))
-  (sethd "Set-Cookie"
-         (string k "=" urlencode.v
-           (when e (+ "; expires=" cookexpires.e))
-           (when d (+ "; domaon=" d))
-           (when p (+ "; path=" p))
-           (when s "; secure")
-           (when h "; httponly"))
-         nil))
+  (sethead "Set-Cookie"
+           (string k "=" urlencode.v
+             (when e (+ "; expires=" cookexpires.e))
+             (when d (+ "; domaon=" d))
+             (when p (+ "; path=" p))
+             (when s "; secure")
+             (when h "; httponly"))
+           t))

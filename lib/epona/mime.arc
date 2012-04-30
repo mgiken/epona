@@ -1,6 +1,6 @@
 ; MIME Types.
 
-(= mime-types* (obj
+(= mimetypes* (obj
   txt  "text/plain"
   html "text/html"
   css  "text/css"
@@ -15,5 +15,5 @@
   svg  "image/svg+xml"
   ))
 
-(defmemo mime-type (ext (o fallback "application/octet-stream"))
-  (mime-types* (sym:downcase:last (tokens string.ext #\.)) fallback))
+(defmemo mimetype (ext (o fallback "application/octet-stream"))
+  (mimetypes* (sym:downcase:last (tokens string.ext #\.)) fallback))
