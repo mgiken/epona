@@ -17,3 +17,6 @@ uninstall:
 	rm -rf $(bindir)/eponad
 	rm -rf $(libdir)/epona.arc
 	rm -rf $(libdir)/epona
+
+test:
+	prove -fe arc t
