@@ -9,6 +9,7 @@
 (defp /foo () "foo")
 
 (= th (thread (serve 9999)))
+(sleep 1)  ; wait for run server
 
 (test is (tostring:system "curl http://127.0.0.1:9999/ 2>/dev/null")
          "404 Not Found")
